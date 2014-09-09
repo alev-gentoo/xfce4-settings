@@ -937,9 +937,11 @@ display_settings_minimal_dialog_response (GtkDialog  *dialog,
 {
     GObject    *first_screen_radio;
     GObject    *second_screen_radio;
+    GObject    *both_split_radio;
     XfceRRMode *mode1, *mode2;
     gboolean    use_first_screen;
     gboolean    use_second_screen;
+    gboolean    use_both_split_screen;
     guint       first, second;
     gint        m, n, found;
 
@@ -951,61 +953,32 @@ display_settings_minimal_dialog_response (GtkDialog  *dialog,
 
         first_screen_radio = gtk_builder_get_object (builder, "radiobutton1");
         second_screen_radio = gtk_builder_get_object (builder, "radiobutton2");
+        both_split_radio = gtk_builder_get_object (builder, "radiobutton3");
 
         use_first_screen =
             gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (first_screen_radio));
         use_second_screen =
             gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (second_screen_radio));
+        use_both_split_screen =
+            gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (both_split_radio));
 
         if (use_first_screen)
         {
-            xfce_randr->mode[first] = xfce_randr_preferred_mode (xfce_randr, first);
-            xfce_randr->mode[second] = None;
+            system("xrandr --output LVDS1 --auto --output VGA1 --auto");
+            system("xrandr --output LVDS1 --auto --output VGA1 --off");
         }
         else if (use_second_screen)
         {
-            xfce_randr->mode[second] = xfce_randr_preferred_mode (xfce_randr, second);
-            xfce_randr->mode[first] = None;
+            system("xrandr --output LVDS1 --auto --output VGA1 --auto");
+            system("xrandr --output LVDS1 --off --output VGA1 --auto");
         }
-        else
+        else if (use_both_split_screen)
         {
-            if (xfce_randr->clone_modes[0] != None)
-            {
-                xfce_randr->mode[first] = xfce_randr->clone_modes[0];
-                xfce_randr->mode[second] = xfce_randr->clone_modes[0];
-            }
-            else
-            {
-                found = FALSE;
-                /* No clone mode available, try to find a "similar" mode */
-                for (n = 0; n < xfce_randr->output_info[first]->nmode; ++n)
-                {
-                    mode1 = &xfce_randr->modes[first][n];
-                    for (m = 0; m < xfce_randr->output_info[second]->nmode; ++m)
-                    {
-                        mode2 = &xfce_randr->modes[second][m];
-                        /* "similar" means same resolution */
-                        if (mode1->width == mode2->width
-                            && mode1->height == mode2->height)
-                        {
-                            xfce_randr->mode[first] = mode1->id;
-                            xfce_randr->mode[second] = mode2->id;
-                            found = TRUE;
-                            break;
-                        }
-                    }
-
-                    if (found)
-                        break;
-                }
-            }
+            system("xrandr --output LVDS1 --auto --output VGA1 --auto");
+        } else /*if (use_both_join_screen)*/
+        {
+            system("xrandr --output LVDS1 --auto --output VGA1 --auto --right-of LVDS1");
         }
-        /* Save the two outputs and apply */
-        xfce_randr_save_output (xfce_randr, "MinimalAutoConfig", display_channel,
-                                first);
-        xfce_randr_save_output (xfce_randr, "MinimalAutoConfig", display_channel,
-                                second);
-        xfce_randr_apply (xfce_randr, "MinimalAutoConfig", display_channel);
     }
 
     gtk_main_quit ();
@@ -1193,8 +1166,8 @@ main (gint argc, gchar **argv)
         }
         else
         {
-            if (xfce_randr->noutput < 2)
-                goto cleanup;
+            //if (xfce_randr->noutput < 2)
+            //    goto cleanup;
 
             /* TODO: handle correctly more than 2 outputs? */
             first = 0;
